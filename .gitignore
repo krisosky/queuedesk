@@ -1,0 +1,20 @@
+# Dependencies and generated files
+**/node_modules/
+**/dist/
+**/.angular/cache/
+**/coverage/
+
+# Local environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs and local database backups
+*.log
+npm-debug.log*
+*.sql.gz
+*.dump
+*.bak
+*.backup
+*.sqlite
+*.db

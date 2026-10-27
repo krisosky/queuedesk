@@ -1,0 +1,468 @@
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Queue Desk home">
+      <span class="brand-mark" aria-hidden="true">Q</span>
+      <span>Queue<span class="brand-light">Desk</span></span>
+    </a>
+    <div class="connection-state">
+      <a class="kiosk-link" routerLink="/display">Waiting-room display</a>
+      <a class="kiosk-link" routerLink="/kiosk">Visitor check-in</a>
+      @if (auth.staff()?.role === 'ADMIN') {
+        <a class="kiosk-link" routerLink="/admin">Admin</a>
+      }
+      <span class="signed-in-user">{{ auth.staff()?.displayName }}</span>
+      <button class="sign-out-button" type="button" (click)="signOut()">Sign out</button>
+      <span class="connection-dot"></span>
+      <span>Location desk</span>
+      <span class="connection-divider"></span>
+      <span>{{ queue()?.queueDate || 'Today' }}</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="page-heading">
+      <div>
+        <p class="eyebrow">WALK-IN OPERATIONS</p>
+        <h1>Service desk</h1>
+        <p class="page-subtitle">A clear line. A fair turn. A better visit.</p>
+      </div>
+      <div class="queue-summary" aria-live="polite">
+        <span class="summary-dot"></span>
+        <span>Today’s queue</span>
+        <strong>{{ waitingTickets().length }}</strong>
+        <span>waiting</span>
+      </div>
+    </section>
+
+    <section class="my-stats-card" aria-labelledby="my-stats-heading" aria-live="polite">
+      <div class="my-stats-heading">
+        <div>
+          <p class="eyebrow">YOUR PERFORMANCE</p>
+          <h2 id="my-stats-heading">My stats</h2>
+          @if (auth.staff()?.role === 'ADMIN') {
+            <p class="my-stats-scope">Only your own account is shown here. Admin has the full staff breakdown.</p>
+          }
+        </div>
+        <span class="stats-period">All time</span>
+      </div>
+      @if (myStatsLoaded()) {
+        <dl class="my-stats-grid">
+          <div class="my-stat">
+            <dt>Total sign-in time</dt>
+            <dd>{{ formatDuration(myStats().totalLoginSeconds) }}</dd>
+          </div>
+          <div class="my-stat">
+            <dt>Tickets completed</dt>
+            <dd>{{ myStats().ticketsCompleted }}</dd>
+          </div>
+          <div class="my-stat">
+            <dt>Marked no-show</dt>
+            <dd>{{ myStats().noShows }}</dd>
+          </div>
+          <div class="my-stat">
+            <dt>Returned to queue</dt>
+            <dd>{{ myStats().ticketsReturned }}</dd>
+          </div>
+        </dl>
+        <div class="my-station-stats">
+          <h3>Activity by service station</h3>
+          @if (myStats().byServicePoint.length) {
+            <div class="staff-station-stats-wrap">
+              <table class="staff-station-stats">
+                <thead>
+                  <tr>
+                    <th scope="col">Station</th>
+                    <th scope="col">Completed</th>
+                    <th scope="col">No-shows</th>
+                    <th scope="col">Returns</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (station of myStats().byServicePoint; track station.servicePointId) {
+                    <tr>
+                      <th scope="row">{{ station.servicePointName }}</th>
+                      <td>{{ station.ticketsCompleted }}</td>
+                      <td>{{ station.noShows }}</td>
+                      <td>{{ station.ticketsReturned }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="stats-loading">No ticket activity recorded by station yet.</p>
+          }
+        </div>
+      } @else {
+        <p class="stats-loading">Loading your stats…</p>
+      }
+      @if (statsError()) {
+        <p class="stats-error" role="status">Stats could not be refreshed: {{ statsError() }}</p>
+      }
+    </section>
+
+    @if (error()) {
+      <div class="feedback feedback-error" role="alert">
+        <span class="feedback-icon" aria-hidden="true">!</span>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    @if (notice()) {
+      <div class="feedback feedback-success" role="status">
+        <span class="feedback-icon" aria-hidden="true">✓</span>
+        <span>{{ notice() }}</span>
+      </div>
+    }
+
+    @if (loading()) {
+      <section class="loading-card" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>Connecting to today’s queue…</span>
+      </section>
+    } @else if (!isReady()) {
+      <section class="setup-card">
+        <span class="setup-icon" aria-hidden="true">i</span>
+        <div>
+          <h2>Finish setting up this desk</h2>
+          <p>
+            Add active services and service stations, connect each station to the services it
+            handles, then assign stations to staff in the Admin screen.
+          </p>
+        </div>
+      </section>
+    } @else {
+      <section class="action-grid" aria-label="Queue actions">
+        <article class="action-card checkin-card">
+          <details class="assisted-checkin">
+            <summary class="card-heading">
+              <span class="step-number">01</span>
+              <div>
+                <h2>Assisted check-in</h2>
+                <p>Use only when a visitor needs help joining the kiosk queue.</p>
+              </div>
+              <span class="section-chevron" aria-hidden="true"></span>
+            </summary>
+            <label for="service-type">Service needed</label>
+            <select id="service-type" name="serviceTypeId" [(ngModel)]="serviceTypeId">
+              @for (service of services(); track service.serviceTypeId) {
+                <option [ngValue]="service.serviceTypeId">{{ service.name }}</option>
+              }
+            </select>
+            <button
+              class="button button-primary"
+              type="button"
+              [disabled]="working() || !queue()"
+              (click)="checkIn()"
+            >
+              <span aria-hidden="true">＋</span>
+              Add visitor to queue
+            </button>
+          </details>
+        </article>
+
+        <article class="action-card call-card">
+          <div class="card-heading">
+            <span class="step-number">02</span>
+            <div>
+              <h2>Call next</h2>
+              <p>Call the next visitor from your assigned station.</p>
+            </div>
+          </div>
+          <label for="service-point">Working at service station</label>
+          <div class="station-select-wrap">
+            <select
+              id="service-point"
+              class="station-select"
+              name="servicePointId"
+              [disabled]="working() || isStationUpdating || !!selectedStaffTicket() || !!selectedStaffInService()"
+              [ngModel]="servicePointId"
+              (ngModelChange)="setSelectedServicePoint($event)"
+            >
+              @if (!servicePointId) {
+                <option [ngValue]="null" disabled>Choose your current station</option>
+              }
+              @for (point of servicePoints(); track point.servicePointId) {
+                <option [ngValue]="point.servicePointId">
+                  {{ point.name }} · {{ servicesForPoint(point) || 'no active services configured' }}
+                </option>
+              }
+            </select>
+          </div>
+          @if (selectedServicePoint; as point) {
+            <p class="current-station-indicator">
+              @if (currentStationSaved()) {
+                Currently working at <strong>{{ point.name }}</strong>
+              } @else {
+                Confirming station <strong>{{ point.name }}</strong>…
+              }
+            </p>
+          } @else {
+            <p class="current-station-indicator station-not-selected">
+              Select the station you are physically working at before calling a customer.
+            </p>
+          }
+          <button
+            class="button button-dark"
+            type="button"
+            [disabled]="working() || !servicePointId || !currentStationSaved() || selectedStaffTicket() || selectedStaffInService() || !eligibleWaitingTickets().length"
+            (click)="callNext()"
+          >
+            Call next customer
+            <span aria-hidden="true">→</span>
+          </button>
+          @if (selectedStaffTicket() || selectedStaffInService()) {
+            <p class="inline-hint">Finish the customer at this station before calling another.</p>
+          } @else if (selectedServicePoint && !selectedServicePoint.serviceTypeIds.length) {
+            <p class="inline-hint">
+              This station is not connected to an active service. Ask an administrator to configure it.
+            </p>
+          } @else if (selectedServicePoint && !eligibleWaitingTickets().length) {
+            <p class="inline-hint">
+              No waiting customer currently needs a service handled at {{ selectedServicePoint.name }}.
+              If you are physically at another assigned station, select it above; otherwise wait for
+              a matching customer.
+            </p>
+          }
+        </article>
+      </section>
+
+      <section class="work-grid">
+        <article class="panel active-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">SERVICE STATION WORKSPACE</p>
+              <h2>In progress</h2>
+            </div>
+            <span class="count-pill">{{ activeTickets().length }}</span>
+          </div>
+
+          @if (selectedStaffTicket(); as ticket) {
+            <div class="current-customer">
+              <div class="current-ticket">
+                <span class="ticket-label">NOW CALLING</span>
+                <strong>{{ formatTicket(ticket.sequenceNumber) }}</strong>
+                <span class="service-name">{{ ticket.serviceTypeName }}</span>
+                <span class="call-attempt">Call {{ ticket.attemptNumber }} of 2</span>
+              </div>
+              <div class="current-actions">
+                @if (ticket.callOutcome === 'PENDING') {
+                  <button
+                    class="button button-primary"
+                    type="button"
+                    [disabled]="working()"
+                    (click)="markPresent(ticket)"
+                  >
+                    Customer is here
+                  </button>
+                  <button
+                    class="button button-secondary"
+                    type="button"
+                    [disabled]="working()"
+                    (click)="recordNoResponse(ticket)"
+                  >
+                    No response
+                  </button>
+                } @else if (ticket.callOutcome === 'NO_RESPONSE' && ticket.attemptNumber === 1) {
+                  <p class="action-note">No response on the first call.</p>
+                  <button
+                    class="button button-primary"
+                    type="button"
+                    [disabled]="working()"
+                    (click)="repeatCall(ticket)"
+                  >
+                    Call once more
+                  </button>
+                } @else if (ticket.callOutcome === 'NO_RESPONSE') {
+                  <p class="action-note">No response after the second call.</p>
+                  <button
+                    class="button button-danger"
+                    type="button"
+                    [disabled]="working()"
+                    (click)="markNoShow(ticket)"
+                  >
+                    Mark no-show
+                  </button>
+                } @else {
+                  <p class="action-note">Customer acknowledged. Start their service.</p>
+                  <button
+                    class="button button-primary"
+                    type="button"
+                    [disabled]="working()"
+                    (click)="markPresent(ticket)"
+                  >
+                    Start service
+                  </button>
+                }
+                <button
+                  class="button button-secondary"
+                  type="button"
+                  [disabled]="working()"
+                  (click)="returnToQueue(ticket)"
+                >
+                  Return ticket to front of queue
+                </button>
+              </div>
+            </div>
+          } @else if (selectedStaffInService(); as ticket) {
+            <div class="current-customer serving">
+              <div class="current-ticket">
+                <span class="ticket-label">IN SERVICE</span>
+                <strong>{{ formatTicket(ticket.sequenceNumber) }}</strong>
+                <span class="service-name">{{ ticket.serviceTypeName }}</span>
+              </div>
+              <div class="current-actions">
+                <p class="action-note">Mark complete when the customer has been helped.</p>
+                <button
+                  class="button button-primary"
+                  type="button"
+                  [disabled]="working()"
+                  (click)="completeService(ticket)"
+                >
+                  Complete service
+                </button>
+              </div>
+            </div>
+          } @else if (activeTickets().length) {
+            <div class="empty-state compact-empty">
+              <span class="empty-illustration" aria-hidden="true">↗</span>
+              <div>
+                <strong>Another service station is helping a customer</strong>
+                <p>Only your assigned stations are available for queue actions.</p>
+              </div>
+            </div>
+            <ul class="other-active-list">
+              @for (ticket of activeTickets(); track ticket.ticketId) {
+                <li>
+                  <span class="ticket-badge">{{ formatTicket(ticket.sequenceNumber) }}</span>
+                  <span>{{ ticket.servicePointName }} · {{ ticket.serviceTypeName }}</span>
+                  <strong>{{ ticket.status === 'IN_SERVICE' ? 'In service' : 'Called' }}</strong>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="empty-state compact-empty">
+              <span class="empty-illustration" aria-hidden="true">✳</span>
+              <div>
+                <strong>No customer in progress at this station</strong>
+                <p>Call the next eligible visitor when ready.</p>
+              </div>
+            </div>
+          }
+        </article>
+
+        <article class="panel waiting-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">FIRST COME, FIRST SERVED</p>
+              <h2>Waiting line</h2>
+            </div>
+            <span class="count-pill">{{ waitingTickets().length }}</span>
+          </div>
+
+          @if (waitingTickets().length) {
+            <ol class="waiting-list">
+              @for (ticket of waitingTickets(); track ticket.ticketId; let position = $index) {
+                <li class="waiting-row">
+                  <span class="line-position">{{ position + 1 }}</span>
+                  <span class="ticket-badge">{{ formatTicket(ticket.sequenceNumber) }}</span>
+                  <span class="waiting-service">
+                    <strong>{{ ticket.serviceTypeName }}</strong>
+                    <span>Checked in {{ formatTime(ticket.checkedInAt) }}</span>
+                  </span>
+                  <span class="waiting-status"><span></span>Waiting</span>
+                </li>
+              }
+            </ol>
+          } @else {
+            <div class="empty-state">
+              <span class="empty-illustration" aria-hidden="true">✓</span>
+              <div>
+                <strong>The line is clear</strong>
+                <p>Customers will appear here as soon as they check in.</p>
+              </div>
+            </div>
+          }
+          <p class="refresh-note"><span class="refresh-dot"></span> Queue updates automatically</p>
+        </article>
+      </section>
+
+      @if (noShowTickets().length) {
+        <section class="panel no-show-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">TICKET FOLLOW-UP</p>
+              <h2>No-show tickets</h2>
+            </div>
+            <span class="count-pill">{{ noShowTickets().length }}</span>
+          </div>
+          <p class="no-show-intro">
+            If a customer returns, give them a new ticket at the end of the line.
+          </p>
+          <ul class="no-show-list">
+            @for (ticket of noShowTickets(); track ticket.ticketId) {
+              <li>
+                <span class="ticket-badge">{{ formatTicket(ticket.sequenceNumber) }}</span>
+                <span class="waiting-service">
+                  <strong>{{ ticket.serviceTypeName }}</strong>
+                  <span>Original ticket · no-show</span>
+                </span>
+                <button
+                  class="button button-secondary"
+                  type="button"
+                  [disabled]="working()"
+                  (click)="rejoinQueue(ticket)"
+                >
+                  Rejoin at end
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (auth.staff()?.role === 'ADMIN') {
+      <details class="panel activity-panel" aria-label="Recent staff activity">
+        <summary class="panel-heading">
+          <div>
+            <p class="eyebrow">STAFF ACCOUNTABILITY</p>
+            <h2>Recent activity</h2>
+          </div>
+          <span class="section-chevron" aria-hidden="true"></span>
+        </summary>
+        @if (staffActivity().length) {
+          <ol class="activity-list">
+            @for (event of staffActivity(); track event.auditEventId) {
+              <li>
+                @if (event.sequenceNumber !== null) {
+                  <span class="ticket-badge">{{ formatTicket(event.sequenceNumber) }}</span>
+                } @else {
+                  <span class="ticket-badge" aria-hidden="true">•</span>
+                }
+                <span class="activity-description">
+                  <strong>{{ event.staffName }}</strong>
+                  {{ activityDescription(event) }}
+                  @if (event.sequenceNumber !== null) {
+                    ticket {{ formatTicket(event.sequenceNumber) }}
+                  }
+                  @if (event.servicePointName && event.sequenceNumber !== null) {
+                    <span>at {{ event.servicePointName }}</span>
+                  }
+                </span>
+                <time>{{ formatTime(event.createdAt) }}</time>
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="activity-empty">Staff-assisted actions will appear here as the queue is handled.</p>
+        }
+      </details>
+      }
+    }
+
+    <footer class="page-footer">
+      <span>QueueDesk</span>
+      <span>One line. Every turn respected.</span>
+    </footer>
+  </main>
+</div>

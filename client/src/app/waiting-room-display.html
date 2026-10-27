@@ -1,0 +1,89 @@
+<main class="display-shell">
+  <header class="display-header">
+    <a class="display-brand" href="/" aria-label="QueueDesk home">
+      <span class="brand-mark" aria-hidden="true">Q</span>
+      <span>Queue<span class="brand-light">Desk</span></span>
+    </a>
+    <div class="display-status">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span>NOW SERVING</span>
+      <span class="date-divider" aria-hidden="true"></span>
+      <span>{{ queue()?.queueDate || 'Today' }}</span>
+      @if (soundSupported()) {
+        <button class="sound-toggle" type="button" (click)="toggleSound()">
+          {{ soundEnabled() ? 'Mute announcements' : 'Enable sound' }}
+        </button>
+      } @else {
+        <span class="sound-unavailable">Audio unavailable</span>
+      }
+    </div>
+  </header>
+
+  <section class="display-content">
+    <div class="display-heading">
+      <p class="eyebrow">PLEASE WATCH FOR YOUR NUMBER</p>
+      <h1>Now calling</h1>
+      <p>When your number appears, please proceed to the service point shown.</p>
+      @if (soundSupported() && !soundEnabled()) {
+        <p class="sound-hint">Enable sound on this screen to hear ticket announcements.</p>
+      }
+      @if (soundError()) {
+        <p class="sound-error" role="alert">{{ soundError() }}</p>
+      }
+    </div>
+
+    @if (error()) {
+      <div class="display-message error-message" role="alert">
+        <h2>Display temporarily unavailable</h2>
+        <p>{{ error() }}</p>
+      </div>
+    } @else if (loading()) {
+      <div class="display-message" role="status">Connecting to today’s queue…</div>
+    } @else if (activeTickets().length === 0 && !waitingTickets().length) {
+      <div class="display-message empty-message">
+        <span class="empty-icon" aria-hidden="true">◷</span>
+        <h2>No customers are being called right now</h2>
+        <p>Please take a seat. We’ll show the next waiting number when someone joins the queue.</p>
+      </div>
+    } @else {
+      @if (activeTickets().length > 0) {
+        <section class="active-section" aria-label="Customers called or being attended to">
+          <h2 class="section-title">Now called or being attended to</h2>
+          <div class="ticket-grid">
+            @for (ticket of activeTickets(); track ticket.ticketId) {
+              <article class="called-ticket" [class.in-service]="ticket.status === 'IN_SERVICE'">
+                <span class="ticket-status">
+                  {{ ticket.status === 'IN_SERVICE' ? 'CURRENTLY BEING ATTENDED TO' : 'NOW CALLED' }}
+                </span>
+                <strong class="ticket-number">{{ formatTicket(ticket.sequenceNumber) }}</strong>
+                <span class="service-point-label">
+                  {{ ticket.status === 'IN_SERVICE' ? 'AT' : 'PLEASE PROCEED TO' }}
+                </span>
+                <span class="service-point">{{ ticket.servicePointName }}</span>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @if (waitingTickets()[0]; as nextTicket) {
+        <section class="next-section" aria-label="Next waiting ticket">
+          <p class="next-label">PLEASE BE READY</p>
+          <h2>Next waiting number</h2>
+          <strong class="next-ticket-number">{{ formatTicket(nextTicket.sequenceNumber) }}</strong>
+          <p class="next-instruction">
+            This is the first ticket waiting. Please proceed to a service point when your number is called.
+          </p>
+        </section>
+      }
+    }
+    <p class="screen-reader-announcement" aria-live="polite" aria-atomic="true">
+      {{ announcement() }}
+    </p>
+  </section>
+
+  <footer class="display-footer">
+    <span>Thank you for waiting</span>
+    <span>QueueDesk</span>
+  </footer>
+</main>

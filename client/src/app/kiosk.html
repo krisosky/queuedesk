@@ -1,0 +1,92 @@
+<main class="kiosk-shell">
+  <header class="kiosk-header">
+    <a class="brand" href="/" aria-label="QueueDesk home">
+      <span class="brand-mark" aria-hidden="true">Q</span>
+      <span>Queue<span class="brand-light">Desk</span></span>
+    </a>
+    <span class="kiosk-label">SELF-SERVICE CHECK-IN</span>
+  </header>
+
+  <section class="kiosk-content" aria-live="polite">
+    @if (loading()) {
+      <div class="kiosk-card centered">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>Preparing today’s service list…</p>
+      </div>
+    } @else if (error()) {
+      <div class="kiosk-card centered" role="alert">
+        <span class="kiosk-symbol warning" aria-hidden="true">!</span>
+        <h1>Check-in is temporarily unavailable</h1>
+        <p>{{ error() }}</p>
+        <button class="kiosk-button secondary" type="button" (click)="retry()">Try again</button>
+      </div>
+    } @else if (ticket(); as issuedTicket) {
+      <div class="kiosk-card ticket-card">
+        <span class="kiosk-symbol success" aria-hidden="true">✓</span>
+        <p class="kiosk-eyebrow">YOU’RE CHECKED IN</p>
+        <h1>Your ticket number</h1>
+        <strong class="issued-number">{{ formatTicket(issuedTicket) }}</strong>
+        <div class="receipt-service">
+          <span>Service</span>
+          <strong>{{ issuedTicket.serviceTypeName }}</strong>
+        </div>
+        <p class="waiting-instruction">
+          Please keep your number and watch the waiting-room display. We’ll show your number
+          when a service point is ready.
+        </p>
+        @if (ticketPrintingEnabled()) {
+          <button class="kiosk-button primary" type="button" (click)="printTicket()">
+            Print or reprint ticket
+          </button>
+          <p class="print-help">
+            Reprinting keeps the same number and place in line. Keep this ticket and watch the display.
+          </p>
+        }
+        <button class="kiosk-button secondary" type="button" (click)="startOver()">
+          Check in another visitor
+        </button>
+        <section class="print-ticket" aria-hidden="true">
+          <p class="print-brand">QueueDesk</p>
+          <p class="print-location">Walk-in service</p>
+          <p class="print-label">YOUR TICKET</p>
+          <strong>{{ formatTicket(issuedTicket) }}</strong>
+          <div><span>Service</span><b>{{ issuedTicket.serviceTypeName }}</b></div>
+          <p>Keep this ticket. Watch the waiting-room display and proceed when your number is called.</p>
+        </section>
+      </div>
+    } @else if (serviceTypes().length === 0) {
+      <div class="kiosk-card centered">
+        <span class="kiosk-symbol warning" aria-hidden="true">i</span>
+        <h1>No services are available right now</h1>
+        <p>Please ask a team member for assistance.</p>
+      </div>
+    } @else {
+      <div class="kiosk-intro">
+        <p class="kiosk-eyebrow">WELCOME</p>
+        <h1>What would you like help with?</h1>
+        <p>Choose a service to join the waiting line.</p>
+      </div>
+      <div class="service-options">
+        @for (service of serviceTypes(); track service.serviceTypeId) {
+          <button
+            class="service-option"
+            type="button"
+            [disabled]="working()"
+            (click)="chooseService(service)"
+          >
+            <span class="option-icon" aria-hidden="true">→</span>
+            <span>{{ service.name }}</span>
+            <span class="option-arrow" aria-hidden="true">›</span>
+          </button>
+        }
+      </div>
+      @if (working()) {
+        <p class="processing" role="status">Issuing your ticket…</p>
+      }
+    }
+  </section>
+
+  <footer class="kiosk-footer">
+    Your ticket is private. We don’t need your name to place you in line.
+  </footer>
+</main>

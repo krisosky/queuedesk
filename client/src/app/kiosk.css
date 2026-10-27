@@ -1,0 +1,368 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f5f8f5;
+}
+
+.kiosk-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.kiosk-header {
+  display: flex;
+  height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 max(24px, calc((100vw - 900px) / 2));
+  border-bottom: 1px solid #e5ebe6;
+  background: #fff;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #202b24;
+  font-size: 17px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 10px;
+  color: white;
+  background: #337951;
+  font-weight: 800;
+}
+
+.brand-light {
+  color: #7b8780;
+  font-weight: 500;
+}
+
+.kiosk-label,
+.kiosk-eyebrow {
+  color: #337951;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.kiosk-content {
+  width: min(700px, calc(100% - 36px));
+  flex: 1;
+  align-self: center;
+  padding: 62px 0 40px;
+}
+
+.kiosk-intro {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.kiosk-intro .kiosk-eyebrow {
+  margin-bottom: 10px;
+}
+
+.kiosk-intro h1,
+.kiosk-card h1 {
+  margin: 0 0 10px;
+  color: #202b24;
+  font-size: clamp(28px, 5vw, 38px);
+  letter-spacing: -1.2px;
+}
+
+.kiosk-intro > p:last-child,
+.kiosk-card p {
+  color: #7b8780;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.service-options {
+  display: grid;
+  gap: 12px;
+}
+
+.service-option {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border: 1px solid #e1e9e2;
+  border-radius: 13px;
+  color: #25352a;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(34, 57, 44, 0.035);
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.service-option:hover:not(:disabled),
+.service-option:focus-visible {
+  border-color: #8db99a;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(51, 121, 81, 0.1);
+}
+
+.service-option:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.option-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 11px;
+  color: #337951;
+  background: #edf5ef;
+}
+
+.option-arrow {
+  margin-left: auto;
+  color: #819087;
+  font-size: 24px;
+}
+
+.processing {
+  margin: 18px 0 0;
+  color: #64746a;
+  font-size: 13px;
+  text-align: center;
+}
+
+.kiosk-card {
+  padding: 38px;
+  border: 1px solid #e2e9e3;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 10px 35px rgba(34, 57, 44, 0.06);
+}
+
+.kiosk-card.centered {
+  display: flex;
+  min-height: 300px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.kiosk-symbol {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 15px;
+  place-items: center;
+  border-radius: 17px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.kiosk-symbol.success {
+  color: #337951;
+  background: #eaf5ed;
+}
+
+.kiosk-symbol.warning {
+  color: #83652b;
+  background: #fbf2d9;
+}
+
+.ticket-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ticket-card .kiosk-eyebrow {
+  margin: 2px 0 9px;
+}
+
+.issued-number {
+  margin: 13px 0 22px;
+  color: #337951;
+  font-size: clamp(76px, 16vw, 118px);
+  font-weight: 800;
+  letter-spacing: -5px;
+  line-height: 1;
+}
+
+.receipt-service {
+  display: flex;
+  width: min(360px, 100%);
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid #e9eeea;
+  border-bottom: 1px solid #e9eeea;
+  font-size: 13px;
+}
+
+.receipt-service span {
+  color: #7b8780;
+}
+
+.receipt-service strong {
+  color: #29372e;
+}
+
+.waiting-instruction {
+  max-width: 390px;
+  margin: 18px auto 22px;
+}
+
+.kiosk-button {
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid #dce5de;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kiosk-button.secondary {
+  color: #405349;
+  background: #fff;
+}
+
+.kiosk-button.primary {
+  margin-bottom: 10px;
+  color: #fff;
+  border-color: #337951;
+  background: #337951;
+}
+
+.kiosk-button:hover {
+  background: #f4f8f4;
+}
+
+.print-help {
+  margin: 0 0 16px;
+  color: #7b8780;
+  font-size: 11px;
+}
+
+.print-ticket {
+  display: none;
+}
+
+.kiosk-footer {
+  padding: 18px 24px;
+  color: #8b9690;
+  font-size: 11px;
+  text-align: center;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #dce8e1;
+  border-top-color: #337951;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .kiosk-header {
+    height: 62px;
+    padding: 0 18px;
+  }
+
+  .kiosk-content {
+    padding-top: 38px;
+  }
+
+  .kiosk-card {
+    padding: 27px 20px;
+  }
+}
+
+@media print {
+  @page {
+    size: 80mm 120mm;
+    margin: 4mm;
+  }
+
+  :host {
+    min-height: 0;
+    background: #fff;
+  }
+
+  .kiosk-shell > *:not(.kiosk-content),
+  .kiosk-content > *:not(.ticket-card),
+  .ticket-card > *:not(.print-ticket) {
+    display: none !important;
+  }
+
+  .kiosk-shell,
+  .kiosk-content,
+  .kiosk-card.ticket-card {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .print-ticket {
+    display: block;
+    color: #000;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+
+  .print-ticket p {
+    margin: 4mm 0;
+    font-size: 10pt;
+  }
+
+  .print-ticket .print-brand {
+    font-size: 16pt;
+    font-weight: 700;
+  }
+
+  .print-ticket .print-location,
+  .print-ticket .print-label {
+    font-size: 9pt;
+  }
+
+  .print-ticket > strong {
+    display: block;
+    margin: 2mm 0 5mm;
+    font-size: 42pt;
+  }
+
+  .print-ticket > div {
+    display: grid;
+    gap: 2mm;
+    padding: 3mm 0;
+    border-top: 1px solid #777;
+    border-bottom: 1px solid #777;
+    font-size: 10pt;
+  }
+}

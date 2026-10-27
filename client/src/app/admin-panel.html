@@ -1,0 +1,551 @@
+<main class="admin-shell">
+  <header class="admin-topbar">
+    <a class="brand" routerLink="/" aria-label="Return to service desk">
+      <span class="brand-mark" aria-hidden="true">Q</span>
+      <span>Queue<span class="brand-light">Desk</span></span>
+    </a>
+    <div class="admin-header-actions">
+      <span>{{ auth.staff()?.displayName }} · Administrator</span>
+      <a routerLink="/">Back to service desk</a>
+    </div>
+  </header>
+
+  <section class="admin-content">
+    <div class="admin-heading">
+      <p class="eyebrow">LOCATION SETUP</p>
+      <h1>Administration</h1>
+      <p>Configure services, service points, routing, and staff access for this location.</p>
+    </div>
+
+    @if (error()) {
+      <div class="feedback feedback-error" role="alert">{{ error() }}</div>
+    }
+    @if (notice()) {
+      <div class="feedback feedback-success" role="status">{{ notice() }}</div>
+    }
+    @if (loading()) {
+      <section class="admin-card loading" role="status">Loading location configuration…</section>
+    } @else {
+      <details class="admin-card" open>
+        <summary class="section-heading">
+          <div>
+            <p class="eyebrow">VISITOR OPTIONS</p>
+            <h2>Services</h2>
+          </div>
+          <span class="section-chevron" aria-hidden="true"></span>
+        </summary>
+        <form class="create-form service-create" (ngSubmit)="createService()">
+          <label>
+            Service name
+            <input name="newServiceName" [(ngModel)]="serviceName" required maxlength="100" />
+          </label>
+          <label>
+            Short instructions (optional)
+            <input
+              name="newServiceDescription"
+              [(ngModel)]="serviceDescription"
+              maxlength="255"
+            />
+          </label>
+          <button type="submit" [disabled]="saving() || !serviceName.trim()">Add service</button>
+        </form>
+        <div class="config-list">
+          @for (service of config().services; track service.serviceTypeId) {
+            <form class="config-row service-row" (ngSubmit)="saveService(service)">
+              <label>
+                Name
+                <input
+                  [name]="'serviceName' + service.serviceTypeId"
+                  [(ngModel)]="service.name"
+                  required
+                  maxlength="100"
+                />
+              </label>
+              <label>
+                Instructions
+                <input
+                  [name]="'serviceDescription' + service.serviceTypeId"
+                  [(ngModel)]="service.description"
+                  maxlength="255"
+                />
+              </label>
+              <label class="active-control">
+                <input
+                  type="checkbox"
+                  [name]="'serviceActive' + service.serviceTypeId"
+                  [(ngModel)]="service.isActive"
+                />
+                Available
+              </label>
+              <button type="submit" [disabled]="saving()">Save</button>
+            </form>
+          } @empty {
+            <p class="empty-note">No services configured yet.</p>
+          }
+        </div>
+      </details>
+
+      <details class="admin-card">
+        <summary class="section-heading">
+          <div>
+            <p class="eyebrow">VISITOR TICKETS</p>
+            <h2>Kiosk ticket printing</h2>
+          </div>
+          <span class="section-chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="printing-settings">
+          <label class="active-control">
+            <input
+              type="checkbox"
+              [ngModel]="config().ticketPrintingEnabled"
+              (ngModelChange)="setTicketPrintingDraft($event)"
+            />
+            Enable optional kiosk printing
+          </label>
+          <p>
+            Visitors can print or reprint their current ticket. Reprinting does not issue a new
+            number or change their place in the queue. When disabled, the ticket remains visible
+            on screen.
+          </p>
+          <div class="printing-actions">
+            <button
+              class="secondary-button"
+              type="button"
+              [disabled]="saving() || config().ticketPrintingEnabled === originalTicketPrintingEnabled"
+              (click)="saveTicketPrinting()"
+            >
+              Save printing setting
+            </button>
+            <button class="secondary-button" type="button" (click)="testTicketPrint()">
+              Test print
+            </button>
+          </div>
+          <p class="help-note">
+            Test print opens the browser print dialog; it cannot detect printer connection or
+            paper. Choose the configured thermal printer there.
+          </p>
+        </div>
+      </details>
+
+      <details class="admin-card">
+        <summary class="section-heading">
+          <div>
+            <p class="eyebrow">COUNTERS, DESKS, OR STATIONS</p>
+            <h2>Service stations</h2>
+          </div>
+          <span class="section-chevron" aria-hidden="true"></span>
+        </summary>
+        <form class="create-form point-create" (ngSubmit)="createServicePoint()">
+          <label>
+            Service station name
+            <input
+              name="newServicePointName"
+              [(ngModel)]="servicePointName"
+              required
+              maxlength="100"
+            />
+          </label>
+          <button type="submit" [disabled]="saving() || !servicePointName.trim()">
+            Add service station
+          </button>
+        </form>
+        <div class="point-grid">
+          @for (point of config().servicePoints; track point.servicePointId) {
+            <article class="point-card">
+              <form class="point-title-form" (ngSubmit)="saveServicePoint(point)">
+                <label>
+                  Name
+                  <input
+                    [name]="'pointName' + point.servicePointId"
+                    [(ngModel)]="point.name"
+                    required
+                    maxlength="100"
+                  />
+                </label>
+                <label class="active-control">
+                  <input
+                    type="checkbox"
+                    [name]="'pointActive' + point.servicePointId"
+                    [(ngModel)]="point.isActive"
+                  />
+                  Active
+                </label>
+                <button type="submit" [disabled]="saving()">Save</button>
+              </form>
+              <fieldset [disabled]="saving() || !point.isActive">
+                <legend>Services handled</legend>
+                @for (service of config().services; track service.serviceTypeId) {
+                  @if (service.isActive) {
+                    <label class="mapping-option">
+                      <input
+                        type="checkbox"
+                        [checked]="serviceSelected(point.servicePointId, service.serviceTypeId)"
+                        (change)="toggleService(
+                          point.servicePointId,
+                          service.serviceTypeId,
+                          $any($event.target).checked
+                        )"
+                      />
+                      <span>{{ service.name }}</span>
+                    </label>
+                  }
+                } @empty {
+                  <p class="empty-note">Add an active service before configuring routing.</p>
+                }
+              </fieldset>
+              <button
+                class="secondary-button"
+                type="button"
+                [disabled]="saving() || !point.isActive"
+                (click)="savePointServices(point)"
+              >
+                Save service routing
+              </button>
+            </article>
+          } @empty {
+            <p class="empty-note">No service points configured yet.</p>
+          }
+        </div>
+        <p class="help-note">
+          Every active service must be assigned to at least one active service station. Deactivating
+          a point or changing routing is blocked if it would leave an active service unavailable.
+        </p>
+      </details>
+
+      <details class="admin-card">
+        <summary class="section-heading">
+          <div>
+            <p class="eyebrow">INDIVIDUAL ACCESS</p>
+            <h2>Staff accounts</h2>
+          </div>
+          <span class="section-chevron" aria-hidden="true"></span>
+        </summary>
+        <section class="staff-stats" aria-labelledby="staff-stats-heading">
+          <div class="staff-stats-heading">
+            <div>
+              <p class="eyebrow">ACCOUNTABILITY</p>
+              <h3 id="staff-stats-heading">Staff performance</h3>
+            </div>
+            <div class="staff-stats-actions">
+              <span>All time</span>
+              <button type="button" class="secondary-button" (click)="refreshStaffStats()">
+                Refresh
+              </button>
+            </div>
+          </div>
+          @if (staffStatsError()) {
+            <p class="staff-stats-error" role="status">
+              Staff stats could not be refreshed: {{ staffStatsError() }}
+            </p>
+          }
+          <div class="staff-stats-table-wrap">
+            <table class="staff-stats-table">
+              <thead>
+                <tr>
+                  <th scope="col">Staff member</th>
+                  <th scope="col">Currently working at</th>
+                  <th scope="col">Hours signed in (all time)</th>
+                  <th scope="col">Completed</th>
+                  <th scope="col">No-shows</th>
+                  <th scope="col">Returns</th>
+                  <th scope="col">Station history</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (staff of config().staff; track staff.staffId) {
+                  <tr>
+                    <th scope="row">
+                      {{ staff.displayName }}
+                      @if (!staff.isActive) {
+                        <span class="inactive-staff-label">· inactive</span>
+                      }
+                    </th>
+                    <td>
+                      {{ staff.currentServiceStations.length
+                        ? staff.currentServiceStations.join(', ')
+                        : 'Not on a station' }}
+                    </td>
+                    <td>{{ formatDuration(staff.stats.totalLoginSeconds) }}</td>
+                    <td>{{ staff.stats.ticketsCompleted }}</td>
+                    <td>{{ staff.stats.noShows }}</td>
+                    <td>{{ staff.stats.ticketsReturned }}</td>
+                    <td>
+                      @if (staff.stats.byServicePoint.length) {
+                        <ul class="station-history-list">
+                          @for (station of staff.stats.byServicePoint; track station.servicePointId) {
+                            <li>
+                              <strong>{{ station.servicePointName }}</strong>:
+                              {{ station.ticketsCompleted }} completed,
+                              {{ station.noShows }} no-shows,
+                              {{ station.ticketsReturned }} returns
+                            </li>
+                          }
+                        </ul>
+                      } @else {
+                        No recorded ticket activity
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7">No staff records found.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <form class="create-form staff-create" (ngSubmit)="createStaff()">
+          <label>
+            Staff display name
+            <input name="staffName" [(ngModel)]="staffName" required maxlength="100" />
+          </label>
+          <label>
+            Username
+            <input name="staffUsername" [(ngModel)]="staffUsername" required minlength="3" maxlength="64" />
+          </label>
+          <label>
+            Temporary password (12+ characters)
+            <input
+              name="staffPassword"
+              type="password"
+              [(ngModel)]="staffPassword"
+              required
+              minlength="12"
+              maxlength="128"
+              autocomplete="new-password"
+            />
+          </label>
+          <label>
+            Role
+            <select name="staffRole" [(ngModel)]="staffRole">
+              <option value="STAFF">Staff — queue operations</option>
+              <option value="ADMIN">Administrator — settings and staff</option>
+            </select>
+          </label>
+          <fieldset class="staff-station-assignments">
+            <legend>Assigned service stations</legend>
+            @for (point of config().servicePoints; track point.servicePointId) {
+              @if (point.isActive) {
+                <label class="mapping-option">
+                  <input
+                    type="checkbox"
+                    [checked]="staffServicePointIds.includes(point.servicePointId)"
+                    (change)="toggleNewStaffServicePoint(
+                      point.servicePointId,
+                      $any($event.target).checked
+                    )"
+                  />
+                  <span>{{ point.name }}</span>
+                </label>
+              }
+            } @empty {
+              <p class="empty-note">Add an active service station before creating staff accounts.</p>
+            }
+          </fieldset>
+          <button
+            type="submit"
+            [disabled]="saving() || !staffName.trim() || !staffUsername.trim() || staffPassword.length < 12 || !staffServicePointIds.length"
+          >
+            Create account
+          </button>
+        </form>
+        <div class="config-list staff-list">
+          @for (staff of activeStaffAccounts(); track staff.staffId) {
+            <form class="config-row staff-row" (ngSubmit)="saveStaff(staff)">
+              <label>
+                Display name
+                <input
+                  [name]="'staffName' + staff.staffId"
+                  [id]="'staff-name-' + staff.staffId"
+                  [(ngModel)]="staff.displayName"
+                  required
+                  maxlength="100"
+                />
+              </label>
+              @if (staff.hasAccount) {
+                <label>
+                  Username
+                  <input
+                    [name]="'staffUsername' + staff.staffId"
+                    [id]="'staff-username-' + staff.staffId"
+                    [value]="staff.username ?? ''"
+                    (input)="setStaffUsername(staff, $any($event.target).value)"
+                    required
+                    minlength="3"
+                    maxlength="64"
+                    autocomplete="off"
+                  />
+                </label>
+                <label>
+                  Role
+                  <select [name]="'staffRole' + staff.staffId" [(ngModel)]="staff.role">
+                    <option value="STAFF">Staff</option>
+                    <option value="ADMIN">Administrator</option>
+                  </select>
+                </label>
+                <label class="active-control">
+                  <input
+                    type="checkbox"
+                    [name]="'staffActive' + staff.staffId"
+                    [(ngModel)]="staff.isActive"
+                  />
+                  Active
+                </label>
+                <fieldset
+                  class="staff-station-assignments"
+                  [disabled]="saving() || !staff.isActive"
+                >
+                  <legend>Assigned service stations</legend>
+                  @for (point of config().servicePoints; track point.servicePointId) {
+                    <label class="mapping-option" [class.inactive-mapping]="!point.isActive">
+                      <input
+                        type="checkbox"
+                        [disabled]="saving() || !point.isActive"
+                        [checked]="staffServicePointSelected(staff, point.servicePointId)"
+                        (change)="toggleStaffServicePoint(
+                          staff,
+                          point.servicePointId,
+                          $any($event.target).checked
+                        )"
+                      />
+                      <span>{{ point.name }}{{ point.isActive ? '' : ' (inactive)' }}</span>
+                    </label>
+                  } @empty {
+                    <p class="empty-note">Add an active service station first.</p>
+                  }
+                  @if (!staff.servicePointIds.length) {
+                    <p class="empty-note">Assign a station to enable queue operations.</p>
+                  }
+                </fieldset>
+                <button type="submit" [disabled]="saving()">Save</button>
+                <button
+                  class="secondary-button staff-deactivate-button"
+                  type="button"
+                  [disabled]="saving()"
+                  (click)="deactivateStaff(staff)"
+                >
+                  Deactivate account
+                </button>
+              } @else {
+                <div class="username-display">
+                  <span>Username</span>
+                  <strong>No sign-in account</strong>
+                </div>
+                <span class="no-account-note">Create an account above using this display name.</span>
+              }
+            </form>
+          } @empty {
+            <p class="empty-note">No active staff accounts. Add or reactivate an account below.</p>
+          }
+        </div>
+        <details class="inactive-staff-disclosure">
+          <summary>
+            Inactive staff accounts
+            <span class="inactive-staff-count">{{ inactiveStaffAccounts().length }}</span>
+          </summary>
+          @if (inactiveStaffAccounts().length) {
+            <ul class="inactive-staff-list">
+              @for (staff of inactiveStaffAccounts(); track staff.staffId) {
+                <li>
+                  <div>
+                    <strong>{{ staff.displayName }}</strong>
+                    <span>{{ staff.username || 'No username' }} · Sign-in disabled</span>
+                  </div>
+                  @if (staff.hasAccount) {
+                    <button
+                      class="secondary-button"
+                      type="button"
+                      [disabled]="saving()"
+                      (click)="reactivateStaff(staff)"
+                    >
+                      Reactivate
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-note">No inactive staff accounts.</p>
+          }
+        </details>
+        <p class="help-note">
+          Update usernames and assignments here. Deactivating removes sign-in access while
+          retaining performance totals and audit history; inactive accounts can be reactivated.
+        </p>
+      </details>
+
+      <details class="admin-card">
+        <summary class="section-heading">
+          <div>
+            <p class="eyebrow">ACCOUNTABILITY</p>
+            <h2>Recent staff and configuration activity</h2>
+          </div>
+          <span class="section-chevron" aria-hidden="true"></span>
+        </summary>
+        @if (activity().length) {
+          <ol class="activity-list">
+            @for (event of activity(); track event.auditEventId) {
+              <li>
+                <strong>{{ event.staffName }}</strong>
+                <span>{{ formatEvent(event) }}</span>
+                @if (event.subjectName) {
+                  <span class="activity-subject">{{ event.subjectName }}</span>
+                }
+                @if (event.sequenceNumber !== null) {
+                  <span>Ticket {{ event.sequenceNumber.toString().padStart(3, '0') }}</span>
+                }
+                <time>{{ formatTime(event.createdAt) }}</time>
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="empty-note">No recorded activity for today yet.</p>
+        }
+      </details>
+    }
+    <section class="printer-test-ticket" aria-hidden="true">
+      <p class="print-brand">QueueDesk</p>
+      <p class="print-location">Walk-in service</p>
+      <p>PRINTER TEST</p>
+      <strong>TEST</strong>
+      <p>If this printed clearly, the kiosk printer is ready.</p>
+    </section>
+  </section>
+</main>
+@if (staffPendingDeactivation(); as staff) {
+  <div class="deactivation-backdrop" role="presentation">
+    <section
+      class="deactivation-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="deactivation-dialog-title"
+      aria-describedby="deactivation-dialog-description"
+    >
+      <p class="eyebrow">CONFIRM ACCOUNT CHANGE</p>
+      <h2 id="deactivation-dialog-title">Deactivate {{ staff.displayName }}?</h2>
+      <p id="deactivation-dialog-description">
+        This will disable sign-in for {{ staff.displayName }}. Their queue activity, performance
+        totals, and audit history will be retained. You can reactivate the account later.
+      </p>
+      <div class="deactivation-dialog-actions">
+        <button
+          class="secondary-button"
+          type="button"
+          [disabled]="saving()"
+          (click)="cancelStaffDeactivation()"
+        >
+          Cancel
+        </button>
+        <button
+          class="deactivation-confirm-button"
+          type="button"
+          [disabled]="saving()"
+          (click)="confirmStaffDeactivation()"
+        >
+          Confirm deactivation
+        </button>
+      </div>
+    </section>
+  </div>
+}

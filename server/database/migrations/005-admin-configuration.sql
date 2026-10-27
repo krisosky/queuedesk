@@ -1,0 +1,23 @@
+ALTER TABLE staff_accounts
+    ADD COLUMN role ENUM('ADMIN', 'STAFF') NOT NULL DEFAULT 'STAFF' AFTER password_hash;
+
+ALTER TABLE staff_audit_events
+    MODIFY COLUMN event_type ENUM(
+        'ASSISTED_CHECK_IN',
+        'REJOINED_TICKET',
+        'CALLED_TICKET',
+        'CALL_ACKNOWLEDGED',
+        'CALL_NO_RESPONSE',
+        'REPEATED_CALL',
+        'MARKED_NO_SHOW',
+        'SERVICE_STARTED',
+        'SERVICE_COMPLETED',
+        'SERVICE_CREATED',
+        'SERVICE_UPDATED',
+        'SERVICE_POINT_CREATED',
+        'SERVICE_POINT_UPDATED',
+        'SERVICE_POINT_SERVICES_UPDATED',
+        'STAFF_ACCOUNT_CREATED',
+        'STAFF_ACCOUNT_UPDATED'
+    ) NOT NULL,
+    ADD COLUMN subject_name VARCHAR(160) NULL AFTER event_type;
